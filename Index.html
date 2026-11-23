@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>CBT Online</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <?!= include('Stylesheet'); ?>
+</head>
+<body>
+
+  <!-- OVERLAY LOADING -->
+  <div id="loadingOverlay" class="overlay hidden">
+    <div class="loader-card">
+      <div class="spinner"></div>
+      <p id="loadingText">Memproses data...</p>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFIKASI -->
+  <div id="toast" class="toast hidden"></div>
+
+  <!-- =====================================================================
+       HALAMAN 1: LOGIN SISWA
+  ====================================================================== -->
+  <section id="pageLogin" class="page active">
+    <div class="login-wrapper">
+      <div class="login-card">
+        <div class="login-header">
+          <div class="school-badge">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <path d="M22 10v6M2 10l10-5 10 5-10 5z"></path>
+              <path d="M6 12v5c3 3 9 3 12 0v-5"></path>
+            </svg>
+          </div>
+          <span id="lblNamaSekolah" class="school-name">SMK NEGERI 1 NUSANTARA</span>
+          <h1 id="lblJudulAplikasi" class="app-title">CBT ONLINE</h1>
+          <div id="lblMataPelajaran" class="subject-pill">MATA PELAJARAN</div>
+        </div>
+
+        <div class="instruction-box">
+          <h3>Petunjuk Singkat Pengerjaan:</h3>
+          <ul>
+            <li>Isi identitas dengan benar sesuai daftar hadir kelas.</li>
+            <li>Jumlah soal <strong id="lblJumlahSoalInfo">50 butir</strong> pilihan ganda dengan waktu <strong id="lblDurasiInfo">90 menit</strong>.</li>
+            <li>Dilarang meninggalkan halaman ujian atau membuka aplikasi lain (maksimal <strong id="lblMaksPelanggaranInfo">5 kali</strong> pelanggaran otomatis mengunci ujian).</li>
+            <li>Pastikan koneksi internet stabil selama mengerjakan ujian.</li>
+          </ul>
+        </div>
+
+        <form id="formLogin" novalidate>
+          <div class="form-group">
+            <label for="inputNama">Nama Lengkap Siswa <span class="req">*</span></label>
+            <input type="text" id="inputNama" placeholder="Contoh: Ahmad Fauzan" autocomplete="off" required>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="selectKelas">Kelas <span class="req">*</span></label>
+              <select id="selectKelas" required>
+                <option value="">-- Pilih Kelas --</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="inputAbsen">Nomor Absen <span class="req">*</span></label>
+              <input type="number" id="inputAbsen" min="1" max="99" placeholder="Contoh: 12" required>
+            </div>
+          </div>
+
+          <div id="loginErrorBox" class="alert-danger hidden"></div>
+
+          <button type="submit" class="btn btn-primary btn-lg btn-block">
+            <span>MULAI UJIAN</span>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
+          </button>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- =====================================================================
+       HALAMAN 2: PENGERJAAN SOAL
+  ====================================================================== -->
+  <section id="pageExam" class="page hidden">
+    <!-- Top Sticky Bar -->
+    <header class="exam-topbar">
+      <div class="topbar-left">
+        <div class="student-avatar" id="avatarInitial">S</div>
+        <div class="student-meta">
+          <div class="student-name" id="examStudentName">Nama Siswa</div>
+          <div class="student-sub" id="examStudentClass">Kelas - Absen</div>
+          <div class="violation-badge" id="violationBadge" title="Catatan Pelanggaran">
+            Pelanggaran: <span id="violationCount">0</span>/<span id="violationMax">5</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="topbar-center">
+        <div class="timer-box" id="timerBox">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 16 14"></polyline>
+          </svg>
+          <span id="timerDisplay">90:00</span>
+        </div>
+      </div>
+
+      <div class="topbar-right">
+        <button type="button" id="btnToggleNavMobile" class="btn btn-outline-light btn-sm mobile-only">
+          Daftar Soal
+        </button>
+      </div>
+    </header>
+
+    <!-- Progress Bar -->
+    <div class="progress-wrapper">
+      <div class="progress-info">
+        <span>Progres Pengerjaan: <strong id="progressText">0 / 50 Soal</strong></span>
+        <span id="saveStatusText" class="save-status">Tersimpan otomatis</span>
+      </div>
+      <div class="progress-track">
+        <div id="progressFill" class="progress-fill" style="width: 0%;"></div>
+      </div>
+    </div>
+
+    <!-- Main Content Grid -->
+    <main class="exam-container">
+      <!-- Area Soal -->
+      <div class="question-panel">
+        <div class="question-header">
+          <div class="q-badge">SOAL <span id="currentQNum">01</span> <small>dari 50</small></div>
+          <span id="currentQCategory" class="q-category">Kategori</span>
+        </div>
+
+        <div id="questionImageBox" class="q-image-box hidden">
+          <img id="questionImage" src="" alt="Gambar Pendukung Soal">
+        </div>
+
+        <div id="questionText" class="q-text">
+          Memuat pertanyaan...
+        </div>
+
+        <div id="optionsContainer" class="options-list">
+          <!-- Opsi A-E dirender via JS -->
+        </div>
+
+        <div class="question-footer">
+          <button type="button" id="btnPrevSoal" class="btn btn-secondary btn-nav">
+            &larr; Sebelumnya
+          </button>
+          <button type="button" id="btnNextSoal" class="btn btn-primary btn-nav">
+            Berikutnya &rarr;
+          </button>
+          <button type="button" id="btnSubmitLastSoal" class="btn btn-success btn-nav hidden">
+            KIRIM JAWABAN &check;
+          </button>
+        </div>
+      </div>
+
+      <!-- Panel Navigasi Nomor Soal -->
+      <aside id="navDrawer" class="nav-panel">
+        <div class="nav-panel-header">
+          <h4>Navigasi Nomor Soal</h4>
+          <button type="button" id="btnCloseNavMobile" class="btn-close mobile-only">&times;</button>
+        </div>
+
+        <div class="nav-legend">
+          <span><i class="dot dot-answered"></i> Sudah Dijawab (<b id="countAnsweredNav">0</b>)</span>
+          <span><i class="dot dot-unanswered"></i> Belum (<b id="countUnansweredNav">50</b>)</span>
+        </div>
+
+        <div id="questionNumberGrid" class="number-grid">
+          <!-- Nomor 1 - 50 dirender via JS -->
+        </div>
+
+        <div class="nav-panel-footer">
+          <button type="button" id="btnOpenSubmitModal" class="btn btn-success btn-block btn-lg hidden">
+            KIRIM JAWABAN
+          </button>
+        </div>
+      </aside>
+    </main>
+  </section>
+
+  <!-- =====================================================================
+       HALAMAN 3: HASIL UJIAN DAN PEMBAHASAN
+  ====================================================================== -->
+  <section id="pageResult" class="page hidden">
+    <div class="result-container">
+      <!-- Kartu Ringkasan Hasil -->
+      <div class="result-summary-card">
+        <div class="result-banner">
+          <div>
+            <span class="badge-done" id="resStatusBadge">UJIAN SELESAI</span>
+            <h2 id="resExamTitle">HASIL EVALUASI UJIAN</h2>
+            <p id="resSchoolName">SMK NEGERI 1 NUSANTARA</p>
+          </div>
+          <div class="score-circle">
+            <span class="score-label">NILAI AKHIR</span>
+            <span class="score-value" id="resFinalScore">0</span>
+          </div>
+        </div>
+
+        <div class="result-grid-info">
+          <div class="info-item">
+            <span class="lbl">Nama Siswa</span>
+            <span class="val" id="resStudentName">-</span>
+          </div>
+          <div class="info-item">
+            <span class="lbl">Kelas / No. Absen</span>
+            <span class="val" id="resClassAbsen">-</span>
+          </div>
+          <div class="info-item">
+            <span class="lbl">Tanggal Ujian</span>
+            <span class="val" id="resDate">-</span>
+          </div>
+          <div class="info-item">
+            <span class="lbl">Waktu Pengerjaan</span>
+            <span class="val" id="resDuration">-</span>
+          </div>
+        </div>
+
+        <div class="stats-row">
+          <div class="stat-box stat-total">
+            <b id="resTotalSoal">50</b>
+            <span>Total Soal</span>
+          </div>
+          <div class="stat-box stat-correct">
+            <b id="resCorrectCount">0</b>
+            <span>Benar</span>
+          </div>
+          <div class="stat-box stat-wrong">
+            <b id="resWrongCount">0</b>
+            <span>Salah</span>
+          </div>
+          <div class="stat-box stat-empty">
+            <b id="resEmptyCount">0</b>
+            <span>Tidak Dijawab</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Area Pembahasan Soal -->
+      <div class="review-layout">
+        <div class="review-card">
+          <div class="review-header">
+            <h3 id="revSoalTitle">SOAL 01</h3>
+            <span id="revStatusTag" class="status-tag">BENAR</span>
+          </div>
+
+          <div id="revImageBox" class="q-image-box hidden">
+            <img id="revImage" src="" alt="Gambar Soal">
+          </div>
+
+          <div id="revQuestionText" class="q-text"></div>
+
+          <div id="revOptionsList" class="review-options">
+            <!-- Opsi A-E beserta penanda jawaban siswa & kunci -->
+          </div>
+
+          <div class="answer-comparison">
+            <div>Jawaban Anda: <strong id="revUserAns">-</strong></div>
+            <div>Kunci Jawaban: <strong id="revKeyAns">-</strong></div>
+            <div>Status: <strong id="revStatusText">-</strong></div>
+          </div>
+
+          <div class="explanation-box">
+            <h4>PEMBAHASAN:</h4>
+            <p id="revExplanationText">-</p>
+          </div>
+
+          <div class="question-footer">
+            <button type="button" id="btnRevPrev" class="btn btn-secondary btn-nav">
+              &larr; Soal Sebelumnya
+            </button>
+            <button type="button" id="btnRevNext" class="btn btn-primary btn-nav">
+              Soal Berikutnya &rarr;
+            </button>
+          </div>
+
+          <div style="margin-top: 16px; padding-top: 16px; border-top: 1px dashed var(--border);">
+            <button type="button" id="btnRetakeFromResult" class="btn btn-secondary btn-block">
+              Kerjakan Ulang / Kembali ke Halaman Login
+            </button>
+          </div>
+        </div>
+
+        <!-- Navigasi Nomor Pembahasan -->
+        <aside class="review-nav-card">
+          <h4>Navigasi Pembahasan</h4>
+          <div class="nav-legend">
+            <span><i class="dot dot-green"></i> Benar (<b id="revLegCorrect">0</b>)</span>
+            <span><i class="dot dot-red"></i> Salah (<b id="revLegWrong">0</b>)</span>
+            <span><i class="dot dot-gray"></i> Kosong (<b id="revLegEmpty">0</b>)</span>
+          </div>
+          <div id="reviewNumberGrid" class="number-grid">
+            <!-- Nomor 1-50 berwarna hijau/merah/abu-abu -->
+          </div>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <!-- =====================================================================
+       MODAL KONFIRMASI MULAI UJIAN
+  ====================================================================== -->
+  <div id="modalStartConfirm" class="modal-backdrop hidden">
+    <div class="modal-box">
+      <div class="modal-icon info">?</div>
+      <h3>Konfirmasi Mulai Ujian</h3>
+      <p>Pastikan data identitas Anda sudah sesuai:</p>
+      <div class="confirm-summary" id="startConfirmDetails"></div>
+      <div class="violation-alert-box" style="text-align: left;">
+        <strong>Peringatan Tata Tertib Ujian:</strong>
+        <ul style="padding-left: 18px; margin-top: 4px; font-size: 0.84rem;">
+          <li>Dilarang pindah tab, keluar browser, atau membuka aplikasi lain saat ujian berlangsung.</li>
+          <li><strong>Pelanggaran ke-1 s.d. ke-4:</strong> Sistem mencatat log pelanggaran dan menampilkan peringatan.</li>
+          <li><strong>Pelanggaran ke-<span id="confirmMaxViolation">5</span>:</strong> Pengerjaan ujian <strong>otomatis dihentikan</strong>, sesi dikunci (<strong>RESET</strong>), dan seluruh jawaban yang sudah diisi langsung dikumpulkan.</li>
+        </ul>
+      </div>
+      <p class="text-muted small">Waktu ujian akan langsung berjalan setelah Anda menekan tombol mulai.</p>
+      <div class="modal-actions">
+        <button type="button" id="btnCancelStart" class="btn btn-secondary">Periksa Kembali</button>
+        <button type="button" id="btnConfirmStart" class="btn btn-primary">Ya, Mulai Sekarang</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =====================================================================
+       MODAL PERINGATAN ANTI-CHEATING
+  ====================================================================== -->
+  <div id="modalCheatWarning" class="modal-backdrop hidden">
+    <div class="modal-box border-danger">
+      <div class="modal-icon danger">!</div>
+      <h3 class="text-danger">PERHATIAN!</h3>
+      <p class="bold-msg">Anda terdeteksi meninggalkan halaman ujian.<br>Aktivitas ini tercatat dalam sistem. Silakan kembali mengerjakan ujian.</p>
+      <div class="violation-alert-box">
+        Pelanggaran ke-<strong id="modalViolationNum">1</strong> dari <strong>5</strong>.<br>
+        <small>Jika mencapai 5 kali pelanggaran, ujian otomatis dihentikan dan sesi dikunci (RESET).</small>
+      </div>
+      <div class="modal-actions">
+        <button type="button" id="btnAckCheat" class="btn btn-danger btn-block">Saya Mengerti & Kembali Mengerjakan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =====================================================================
+       MODAL SESI DIKUNCI (RESET KARENA PELANGGARAN KE-5)
+  ====================================================================== -->
+  <div id="modalSessionLocked" class="modal-backdrop hidden">
+    <div class="modal-box border-danger">
+      <div class="modal-icon danger">✕</div>
+      <h3 class="text-danger">UJIAN DIHENTIKAN (SESI RESET)</h3>
+      <p>Anda telah melakukan pelanggaran meninggalkan halaman ujian sebanyak <strong>5 kali</strong>.</p>
+      <p>Sesi ujian Anda telah dikunci secara otomatis dan seluruh jawaban serta log pelanggaran telah disimpan ke server.</p>
+      <div class="violation-alert-box">
+        <strong>Silakan segera menghubungi guru atau pengawas ujian.</strong>
+      </div>
+      <div class="modal-actions">
+        <button type="button" id="btnRestartAfterReset" class="btn btn-primary btn-block">Mulai Ulang Ujian</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =====================================================================
+       MODAL KONFIRMASI KIRIM JAWABAN
+  ====================================================================== -->
+  <div id="modalSubmitConfirm" class="modal-backdrop hidden">
+    <div class="modal-box">
+      <div class="modal-icon warning">!</div>
+      <h3>Konfirmasi Pengiriman Jawaban</h3>
+      <p>Apakah Anda yakin ingin mengakhiri ujian?<br>Pastikan seluruh soal sudah dijawab. Setelah jawaban dikirim, Anda tidak dapat mengubahnya kembali.</p>
+      
+      <div class="submit-stats">
+        <div class="s-stat">
+          <span>Total Soal</span>
+          <strong id="subTotalSoal">50</strong>
+        </div>
+        <div class="s-stat text-success">
+          <span>Sudah Dijawab</span>
+          <strong id="subAnswered">0</strong>
+        </div>
+        <div class="s-stat text-danger">
+          <span>Belum Dijawab</span>
+          <strong id="subUnanswered">50</strong>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" id="btnCancelSubmit" class="btn btn-secondary">KEMBALI MENGERJAKAN</button>
+        <button type="button" id="btnConfirmSubmit" class="btn btn-success">YA, KIRIM JAWABAN</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Inject Config dari Server -->
+  <script>
+    const APP_CONFIG = <?!= config ?>;
+  </script>
+  <?!= include('JavaScript'); ?>
+</body>
+</html>
